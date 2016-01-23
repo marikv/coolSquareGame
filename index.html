@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script type="text/javascript" src="js/jquery-1.12.0.min.js"></script>
+	<link href="css/style.css"  rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
+	<table align="center" class="bg" width="400" style="width:400px" border="0">
+        <tr>
+            <td colspan="2" style="border-bottom: 1px solid #a7a7a4; text-align: center; font-weight: bold; color: #195bc6;padding-bottom: 15px;" valign="top">
+                Cool Square Game
+            </td>
+        </tr>
+        <tr>
+			<td style="border-right: 1px solid #a7a7a4; width: 200px; text-align: right;" width="200px" valign="top">
+				<table border="0" width="100%" style="width: 100%;" cellpadding="0" cellspacing="0">
+                    <tr><td>Level: </td><td style="width: 100%; text-align: right;">
+                        <select id="sel" onchange="draw()" >
+                            <option value="3" >3x3</option>
+                            <option value="4" >4x4</option>
+                            <option value="5" >5x5</option>
+                            <option value="6" >6x6</option>
+                        </select>
+                    </td></tr>
+                    <tr><td>Time: </td><td style="width: 100%;"><div id="time" style="color:#f02711; font-size: 17px; float: right;">00:00</div></td></tr>
+                    <tr><td> Best: </td><td><div id="best_time" style="color:#a9101b; font-size: 17px; float: right;">00:00</div></td></tr></table>
+				<input type="button" value="New" style="width: 100%" onclick="hinder()">
+				<input type="button" value="Reset" style="width: 100%" onclick="reset()">
+				<input type="button" value="Instructions" style="width: 100%" onclick="$('#instruct').toggle()">
+				<br>
+				<input type="button" value="Help" style="width: 100%" onclick="help()">
+				<div id="instruct" style="display: none; text-align:justify">
+				The object of the game is to change all the squares to the same color. When you change one square, all the others around it also change color.
+				</div>
+				<div id="hint-id" style="display: none;"></div>
+			</td>
+			<td width="500px" style="width: 500px; padding-left: 30px;" valign="top">
+				<table id="tbl" align="left" border="0" cellspacing="1"></table>
+			</td>
+		</tr>
+	</table>
+	
+	<script type="text/javascript" >
+	
+    $(function(){  draw();   timer(); });
+
+    var global_hint = [];
+
+    function help(){
+        $('#hint-id').toggle();
+    }
+
+    function reset(){
+        $('.c1').addClass('c0').removeClass('c1');
+        for(var i=0; i<global_hint.length; i++){
+            change(global_hint[i][0],global_hint[i][1]);
+        }
+        document.getElementById('time').innerHTML = '00:00';
+    }
+
+    function hinder(){
+
+		$('.c1').addClass('c0').removeClass('c1');
+        var hint = new Array(), v = document.getElementById('sel').value, min = v, max = parseInt(v)+15, lastR = 0, lastC = 0, r = 0, c =0;
+        var cnt = Math.floor(Math.random() * (parseInt(max) - parseInt(min) + 1)) + parseInt(min);
+        for(var i=0; i<=cnt; i++){
+            r = rand(v);
+            c = rand(v);
+			for (; (r == lastR && c == lastC ); ) {
+				r = rand(v);
+				c = rand(v);
+			}
+			lastR = r;
+			lastC = c;
+            change(r,c);
+            if (check()) hinder();
+            hint[i] = new Array(r,c);
+        }
+
+         document.getElementById('hint-id').innerHTML = '<span style="color:red;font-size: 12px;">[row, col]</span><BR>';
+         for(var i = 0 ; i<hint.length; i++){
+             document.getElementById('hint-id').innerHTML +=  (i+1) + '. [' + hint[i][0] + '&nbsp;&nbsp;, ' + hint[i][1] + '] <br>';
+         }
+         document.getElementById('time').innerHTML = '00:00';
+         global_hint = hint;
+    }
+
+    function rand(v){
+		return Math.floor(Math.random() * v ) + 1;
+    }
+	 
+    function draw(){
+         var v = document.getElementById('sel').value;
+         document.getElementById('tbl').innerHTML = '';
+         for(var i=1; i<=v; i++){
+             var tds = '';
+             for(var j=1; j<=v; j++){
+                 tds=tds+'<td class="c0" id="r' + i + 'c' + j + '" row="' + i + '" col="' + j + '"></td>';
+             }
+             $('#tbl').append('<tr>' + tds + '</tr>');
+         }
+         hinder();
+
+         $('.c0,.c1').on("click",function(){
+             change($(this).attr('row'), $(this).attr('col'));
+             if (check()){
+                 alert("it's all");
+                 setBestTime();
+                 document.getElementById('time').innerHTML = '00:00';
+                 hinder();
+             }
+         });
+    }
+
+     function change(r,c){
+         var ur = parseInt(r)-1 , dr = parseInt(r)+ 1, lc = parseInt(c)- 1, rc = parseInt(c)+ 1, clss ='';
+         var arr = new Array('#r'+ur+'c'+c, '#r'+dr+'c'+c, '#r'+r+'c'+lc, '#r'+r+'c'+rc, '#r'+r+'c'+c);
+         for(var i=0; i<arr.length; i++){
+             if ($(arr[i]).length > 0){
+                 inv(arr[i]);
+             }
+         }
+     }
+
+    function inv(el){
+         var clss = $(el).attr('class');
+         return $(el).removeClass(clss).addClass('c' + Math.abs(parseInt(clss.substring(1,2))-1))
+    }
+
+    function check(){
+         return !($('.c1').length && $('.c0').length);
+    }
+
+    function timer(){
+         var t = document.getElementById('time').innerHTML;
+         var mas = t.split(':');
+         var m = parseFloat(mas[0])
+         var s = parseFloat(mas[1]) + 1;
+         if (s==0 && m==0){ window.setTimeout(function() { }, 1000); }
+         if (s < 10){
+             s = '0' + s;
+         }else if (s == 60){
+             s = '00' ;
+             m = m + 1;
+         }
+         if (m < 10) m = '0' + m;
+
+         document.getElementById('time').innerHTML = m +':' + s ;
+         window.setTimeout(function() {
+             timer();
+         }, 1000);
+    }
+
+    function setBestTime(){
+         var t = document.getElementById('time').innerHTML;
+         var mas = t.split(':');
+         var m = parseFloat(mas[0])
+         var s = parseFloat(mas[1]);
+
+         var bt = document.getElementById('best_time').innerHTML;
+         var bmas = bt.split(':');
+         var bm = parseFloat(bmas[0])
+         var bs = parseFloat(bmas[1]);
+
+        document.getElementById('best_time').innerHTML = (bt == '00:00' || bm > m || (bm == m && bs > s)) ? t : bt;
+
+    }
+	</script>
+</body>
+</html>
